@@ -1,0 +1,28 @@
+/* MessageBoxStyles.css */
+.custom-message-box .rce-mbox {
+    background-color: #ebfffc !important;
+}
+
+.chat-room-selected {
+    font-weight: bold;
+    border-left: 2px solid #00918f; /* Ant Design primary color */
+}
+
+
+/* shrink the entire bubble: less padding & a tighter max-width */
+.rce-mbox {
+    padding: 2px 6px !important;
+    max-width: 100% !important; /* or whatever percentage you prefer */
+    overflow: hidden;
+}
+
+/* shrink the text size & line-height */
+.rce-mbox-text {
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+}
+
+/* optionally shrink the timestamp underneath */
+.rce-mbox-date {
+    font-size: 10px !important;
+}
