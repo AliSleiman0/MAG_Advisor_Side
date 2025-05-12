@@ -13,12 +13,7 @@ import ProfileLayout from '@app/components/profile/ProfileLayout';
 
 import { withLoading } from '@app/hocs/withLoading.hoc';
 
-import Dashboard from '../../pages/30/Dashboard';
-import GraphComponent from '../../pages/30/POS/POS';
-import DynamicPOS from '../../pages/30/DyanmicPOS/DynamicPOS';
-import CustomizedPOS from '../../pages/30/CustomizedPOS/CustomizedPOS';
-import AdvisorsList from '../../pages/30/AdvisorsPage';
-import SchedulingTool from '@app/pages/30/SchedulingTool/SchedulingTool';
+
 import Messager from '../../pages/30/Messager/Messager';
 import { UserProvider } from '../../Context/UserContext';
 import { ProtectedRoute } from './ProtectedLayout';
@@ -64,19 +59,9 @@ export const AppRouter: React.FC = () => {
                 <Routes>
 
                     <Route path={NFT_DASHBOARD_PATH} element={protectedLayout}>
-                        <Route index element={<Dashboard />} />
-                        <Route path={"/CustomizedPOS"} element={<CustomizedPOS />} />
-                        <Route path={"/DynamicPOS"} element={<DynamicPOS />} />
-                        <Route path="/POS" element={<GraphComponent />} />
-                       
+                      
                         <Route path="/Messager/:receiverId" element={<Messager />} />
                         <Route path="/Messager/*" element={<Navigate to="/Messager/1" replace />} />
-
-
-                        <Route path="/advisors" element={<AdvisorsList />} />
-                        <Route path="/Scheduling_Tool" element={< SchedulingTool />} />/
-
-
 
                         <Route path="server-error" element={<ServerError />} />
                         <Route path="404" element={<Error404 />} />
