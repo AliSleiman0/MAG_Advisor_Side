@@ -36,11 +36,16 @@ export const PersonalInfo: React.FC = () => {
             notificationController.error({ message: t('common.pleaseSelectAnImage') });
             return;
         }
+        if (!user || user.userid == null) {
+            throw new Error('User ID is required to remove or upload images');
+        }
+    
         try {
             const filePath = await updateImage(user?.image ?? 's', file);
             const imgSrc = getImageUrl(filePath);
-            await removeImage();
-            await uploadImageDatabase(imgSrc);
+
+            await removeImage((user?.userid) );
+            await uploadImageDatabase(imgSrc, user?.userid );
             notificationController.success({ message: t('common.success') });
             setSubmitting(false);
         } catch (error) {

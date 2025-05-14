@@ -17,6 +17,7 @@ import { withLoading } from '@app/hocs/withLoading.hoc';
 import Messager from '../../pages/30/Messager/Messager';
 import { UserProvider } from '../../Context/UserContext';
 import { ProtectedRoute } from './ProtectedLayout';
+import Students from '../../pages/30/Students';
 
 
 
@@ -26,8 +27,6 @@ const PersonalInfoPage = React.lazy(() => import('@app/pages/PersonalInfoPage'))
 const SecuritySettingsPage = React.lazy(() => import('@app/pages/SecuritySettingsPage'));
 const Logout = React.lazy(() => import('./Logout'));
 
-export const NFT_DASHBOARD_PATH = '/';
-export const MEDICAL_DASHBOARD_PATH = '/medical-dashboard';
 
 
 // UI Components
@@ -57,27 +56,20 @@ export const AppRouter: React.FC = () => {
         <BrowserRouter>
             <UserProvider>
                 <Routes>
-
-                    <Route path={NFT_DASHBOARD_PATH} element={protectedLayout}>
-                      
+                    <Route path={'/'} element={protectedLayout}>
+                        <Route index element={<Students />} />
                         <Route path="/Messager/:receiverId" element={<Messager />} />
                         <Route path="/Messager/*" element={<Navigate to="/Messager/1" replace />} />
-
                         <Route path="server-error" element={<ServerError />} />
                         <Route path="404" element={<Error404 />} />
                         <Route path="profile" element={<ProfileLayout />}>
                             <Route path="personal-info" element={<PersonalInfo />} />
                             <Route path="security-settings" element={<SecuritySettings />} />
-
                         </Route>
-
                     </Route>
                     <Route path="/auth" element={<AuthLayoutFallback />}>
                         <Route path="login" element={<LoginPage />} />
-
-                        
                         <Route path="forgot-password" element={<ForgotPasswordPage />} />
-                       
                     </Route>
                     <Route path="auth/logout" element={<LogoutFallback />} />
 

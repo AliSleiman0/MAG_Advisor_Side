@@ -3,7 +3,7 @@ import { BellOutlined } from '@ant-design/icons';
 import { BaseButton } from '@app/components/common/BaseButton/BaseButton';
 import { BaseBadge } from '@app/components/common/BaseBadge/BaseBadge';
 import { NotificationsOverlay } from '@app/components/header/components/notificationsDropdown/NotificationsOverlay/NotificationsOverlay';
-import { notifications as fetchedNotifications, Notification } from '@app/api/notifications.api';
+import { Notification, notifications as fetchedNotifications } from '../../../../api/notifications.api'
 import { HeaderActionWrapper } from '@app/components/header/Header.styles';
 import { BasePopover } from '@app/components/common/BasePopover/BasePopover';
 
