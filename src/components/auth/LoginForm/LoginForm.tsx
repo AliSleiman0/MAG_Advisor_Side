@@ -27,16 +27,27 @@ export const LoginForm: React.FC = () => {
     const handleSubmit = async (values: LoginFormData) => {
         setLoading(true);
         try {
-            const loginResponse = await loginUser({ userid: values.userid, password: values.password });
-            console.log("loginResponse", loginResponse);
-            loginResponse.usertype === "Professor" ? navigate('/Messager') : navigate('/')
-
+            await loginUser({ userid: values.userid, password: values.password });
+            navigate('/');
         } catch (err: any) {
-            notificationController.error({ message: err.message });
+            // Determine actual error message from your request library:
+            // e.g. axios: err.response.data.message
+            const backendMessage = err.message || err.response?.data?.message || '';
+
+            // If it’s the “school on null” error, show the custom advisor/student notice
+            if (backendMessage.includes('Attempt to read property "school" on null')) {
+                notificationController.error({
+                    message: 'You attempted to login as student, login in as advisor first to access students!',
+                });
+            } else {
+                // Fallback to the original error
+                notificationController.error({ message: backendMessage });
+            }
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <Auth.FormWrapper>
