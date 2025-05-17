@@ -6,8 +6,9 @@ import { MainHeader } from '../MainHeader/MainHeader';
 import * as S from './MainLayout.styles';
 import { Outlet, useLocation } from 'react-router-dom';
 
-import { useResponsive } from '@app/hooks/useResponsive';
 import { References } from '@app/components/common/References/References';
+import { useResponsive } from '../../../../hooks/useResponsive';
+import { MEDICAL_DASHBOARD_PATH, NFT_DASHBOARD_PATH } from '../../../router/AppRouter';
 
 const MainLayout: React.FC = () => {
     const [isTwoColumnsLayout, setIsTwoColumnsLayout] = useState(true);
@@ -17,7 +18,9 @@ const MainLayout: React.FC = () => {
 
     const toggleSider = () => setSiderCollapsed(!siderCollapsed);
 
-
+    useEffect(() => {
+        setIsTwoColumnsLayout([MEDICAL_DASHBOARD_PATH, NFT_DASHBOARD_PATH].includes(location.pathname) && isDesktop);
+    }, [location.pathname, isDesktop]);
 
     return (
         <S.LayoutMaster >

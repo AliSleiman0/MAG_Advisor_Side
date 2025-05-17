@@ -1,8 +1,8 @@
 ﻿
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-import { LoginInput, UpdatePasswordInput, AddImageInput, logout, showProfile,  addImage, deleteImage, resetPassword, LoginResponse, login, UserProfile, AdvisorProfile } from '../apiMAG/user';
 import { setAuthToken } from '../apiMAG/api';
+import { AdvisorProfile, LoginInput, LoginResponse, UpdatePasswordInput, login, logout, showProfile, resetPassword, addImage, deleteImage } from '../apiMAG/user';
 
 
 // ----- Context Types -----

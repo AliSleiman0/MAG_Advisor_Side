@@ -33,28 +33,26 @@ const ChatComposer: FC<{
                     width: '100%',
                     borderRadius: 24,
                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                    padding: 8,
-                    background: '#fff',
-                    //zIndex: "50",
-                    //position: "absolute",
-                    //bottom:5
+                    padding: 4,
+                    backgroundColor: 'transparent',
+                    
                 }}
             >
                 {/* Emoji toggle */}
-                <Button
-                    icon={<SmileOutlined />}
-                    onClick={() => setShowEmojiPicker(v => !v)}
-                    aria-label="Insert emoji"               // ARIA label :contentReference[oaicite:5]{index=5}
-                    type="text"
-                />
+                {/*<Button*/}
+                {/*    icon={<SmileOutlined />}*/}
+                {/*    onClick={() => setShowEmojiPicker(v => !v)}*/}
+                {/*    aria-label="Insert emoji"               // ARIA label :contentReference[oaicite:5]{index=5}*/}
+                {/*    type="text"*/}
+                {/*/>*/}
 
                 {/* File attachment */}
-                <Button
-                    icon={<PaperClipOutlined />}
-                    onClick={() => fileInputRef.current?.click()}
-                    aria-label="Attach file"
-                    type="text"
-                />
+                {/*<Button*/}
+                {/*    icon={<PaperClipOutlined />}*/}
+                {/*    onClick={() => fileInputRef.current?.click()}*/}
+                {/*    aria-label="Attach file"*/}
+                {/*    type="text"*/}
+                {/*/>*/}
                 <input
                     type="file"
                     ref={fileInputRef}

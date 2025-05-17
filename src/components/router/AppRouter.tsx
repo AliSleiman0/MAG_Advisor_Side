@@ -43,6 +43,8 @@ const SecuritySettings = withLoading(SecuritySettingsPage);
 
 const AuthLayoutFallback = withLoading(AuthLayout);
 const LogoutFallback = withLoading(Logout);
+export const NFT_DASHBOARD_PATH = '/';
+export const MEDICAL_DASHBOARD_PATH = '/medical-dashboard';
 
 export const AppRouter: React.FC = () => {
     const protectedLayout = (

@@ -10,7 +10,7 @@ export const ThemePicker: React.FC = () => {
   const theme = useAppSelector((state) => state.theme.theme);
 
   const handleClickButton = (theme: ThemeType) => {
-    dispatch(setTheme(theme));
+    dispatch(setTheme('light'));
     dispatch(setNightMode(false));
   };
 
