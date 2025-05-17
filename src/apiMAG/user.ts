@@ -19,7 +19,7 @@ export interface Student {
     departmentid: number;
     departmentname: string;
     campusname: string;
-    gpa: number;
+   
     creditsFinished: number;
     totalCredits: number;
     currentlyRegisteredCourses: Course[];

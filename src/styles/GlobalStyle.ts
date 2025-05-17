@@ -3,7 +3,7 @@ import { resetCss } from './resetCss';
 import { BREAKPOINTS, FONT_SIZE, FONT_WEIGHT, media } from './themes/constants';
 import {
   lightThemeVariables,
-  darkThemeVariables,
+
   commonThemeVariables,
   antOverrideCssVariables,
 } from './themes/themeVariables';
@@ -17,9 +17,6 @@ export default createGlobalStyle`
     ${lightThemeVariables}
   }
 
-  [data-theme='dark'] {
-    ${darkThemeVariables}
-  }
 
   :root {
     ${commonThemeVariables};

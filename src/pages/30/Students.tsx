@@ -24,7 +24,7 @@ import Title from 'antd/lib/skeleton/Title';
 import { color } from 'echarts';
 import { title } from 'process';
 
-
+//$env:NODE_OPTIONS = "--openssl-legacy-provider"; yarn start
 // Custom Course List Component
 interface CourseListProps {
     title: string;
@@ -153,7 +153,7 @@ export default function Students() {
             departmentid: 101,
             departmentname: 'Computer Science',
             campusname: 'North Campus',
-            gpa: 3.92,
+           
             creditsFinished: 110,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -175,7 +175,7 @@ export default function Students() {
             departmentid: 102,
             departmentname: 'Mathematics',
             campusname: 'East Campus',
-            gpa: 3.45,
+           
             creditsFinished: 95,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -196,7 +196,7 @@ export default function Students() {
             departmentid: 103,
             departmentname: 'Physics',
             campusname: 'South Campus',
-            gpa: 3.78,
+           
             creditsFinished: 102,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -217,7 +217,7 @@ export default function Students() {
             departmentid: 104,
             departmentname: 'Chemistry',
             campusname: 'West Campus',
-            gpa: 3.1,
+          
             creditsFinished: 88,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -239,7 +239,7 @@ export default function Students() {
             departmentid: 105,
             departmentname: 'Biology',
             campusname: 'North Campus',
-            gpa: 3.6,
+          
             creditsFinished: 100,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -260,7 +260,7 @@ export default function Students() {
             departmentid: 106,
             departmentname: 'Economics',
             campusname: 'East Campus',
-            gpa: 3.3,
+          
             creditsFinished: 92,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -281,7 +281,7 @@ export default function Students() {
             departmentid: 107,
             departmentname: 'History',
             campusname: 'South Campus',
-            gpa: 3.85,
+           
             creditsFinished: 105,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -302,7 +302,7 @@ export default function Students() {
             departmentid: 108,
             departmentname: 'Engineering',
             campusname: 'West Campus',
-            gpa: 3.7,
+          
             creditsFinished: 108,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -324,7 +324,7 @@ export default function Students() {
             departmentid: 109,
             departmentname: 'Literature',
             campusname: 'North Campus',
-            gpa: 3.5,
+          
             creditsFinished: 98,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -345,7 +345,7 @@ export default function Students() {
             departmentid: 110,
             departmentname: 'Philosophy',
             campusname: 'East Campus',
-            gpa: 3.2,
+          
             creditsFinished: 90,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -366,7 +366,7 @@ export default function Students() {
             departmentid: 111,
             departmentname: 'Political Science',
             campusname: 'South Campus',
-            gpa: 3.65,
+           
             creditsFinished: 101,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -387,7 +387,7 @@ export default function Students() {
             departmentid: 112,
             departmentname: 'Art',
             campusname: 'West Campus',
-            gpa: 3.95,
+           
             creditsFinished: 115,
             totalCredits: 120,
             currentlyRegisteredCourses: [
@@ -475,12 +475,7 @@ export default function Students() {
             filters: Array.from(new Set(dataSource.map(d => d.departmentname))).map(dpt => ({ text: dpt, value: dpt })),
             onFilter: (value: any, record: Student) => record.departmentname === value,
         },
-        {
-            title: 'GPA',
-            dataIndex: 'gpa',
-            key: 'gpa',
-            sorter: (a: Student, b: Student) => a.gpa - b.gpa,
-        },
+       
         {
             title: 'Finished Credits',
             dataIndex: 'creditsFinished',
@@ -542,20 +537,21 @@ export default function Students() {
                 dataSource={dataSource}
                 columns={columns} />
             <Modal
-                title={null} // We'll customize the title ourselves
+                title={null}
                 open={isAdviseModalVisible}
                 onCancel={handleAdviseCancel}
-                width={1200}
+                width="90vw"
+                style={{ maxWidth: 1200 }}
                 footer={null}
                 centered
                 destroyOnClose
                 className="luxury-modal"
                 bodyStyle={{
                     padding: 0,
-                 
-                    overflow: 'hidden',
+                    maxHeight: '80vh',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
                     boxShadow: '0 24px 80px rgba(0,0,0,0.15)',
-                  
                 }}
             >
                 {adviseStudent && (
@@ -568,7 +564,7 @@ export default function Students() {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '24px',
-                         
+                            
 
                         }}>
                             <Badge
@@ -639,7 +635,7 @@ export default function Students() {
                                         {adviseStudent.departmentname}
                                     </Descriptions.Item>
                                     <Descriptions.Item label="Current GPA" contentStyle={{ color: '#038b94', fontWeight: 600 }}>
-                                        {adviseStudent.gpa.toFixed(2)}
+                                        3.97
                                     </Descriptions.Item>
                                     <Descriptions.Item>
                                         <div style={{ width: '80%' }}>
