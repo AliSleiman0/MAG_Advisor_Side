@@ -6,6 +6,7 @@ import {
     SendOutlined,
 } from '@ant-design/icons';
 import 'react-chat-elements/dist/main.css';   // core chat CSS
+import { useTranslation } from 'react-i18next';
 
 // 1. Auto-resizing TextArea
 const { TextArea } = Input;
@@ -25,7 +26,7 @@ const ChatComposer: FC<{
         onSend(value.trim(), file);
         setValue('');
     };
-
+    const { t } = useTranslation();
     return (
         <>
             <Space.Compact
@@ -33,26 +34,28 @@ const ChatComposer: FC<{
                     width: '100%',
                     borderRadius: 24,
                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                    padding: 4,
-                    backgroundColor: 'transparent',
-                    
+                    padding: 8,
+                    background: '#fff',
+                    //zIndex: "50",
+                    //position: "absolute",
+                    //bottom:5
                 }}
             >
                 {/* Emoji toggle */}
-                {/*<Button*/}
-                {/*    icon={<SmileOutlined />}*/}
-                {/*    onClick={() => setShowEmojiPicker(v => !v)}*/}
-                {/*    aria-label="Insert emoji"               // ARIA label :contentReference[oaicite:5]{index=5}*/}
-                {/*    type="text"*/}
-                {/*/>*/}
+                <Button
+                    icon={<SmileOutlined />}
+                    onClick={() => setShowEmojiPicker(v => !v)}
+                    aria-label="Insert emoji"               // ARIA label :contentReference[oaicite:5]{index=5}
+                    type="text"
+                />
 
                 {/* File attachment */}
-                {/*<Button*/}
-                {/*    icon={<PaperClipOutlined />}*/}
-                {/*    onClick={() => fileInputRef.current?.click()}*/}
-                {/*    aria-label="Attach file"*/}
-                {/*    type="text"*/}
-                {/*/>*/}
+                <Button
+                    icon={<PaperClipOutlined />}
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Attach file"
+                    type="text"
+                />
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -63,7 +66,7 @@ const ChatComposer: FC<{
                 {/* 3. Auto-resizing TextArea */}
                 <TextArea
                     autoSize={{ minRows: 1, maxRows: 6 }}    // autosize docs :contentReference[oaicite:6]{index=6}
-                    placeholder="Type your message..."
+                    placeholder={t("chats.type")}
                     style={{ flex: 1, border: 'none', outline: 'none' }}
                     value={value}
                     onChange={e => setValue(e.target.value)}
