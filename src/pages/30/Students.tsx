@@ -1,31 +1,26 @@
-﻿import  { useRef, useState } from 'react';
-import { Table, Button, Space, Input, InputRef, Modal, Typography, Descriptions, List, Col, Row, Card, Avatar, Badge, Progress, Tag } from 'antd';
+﻿import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { Table, Button, Space, Input, InputRef, Modal, Typography, List, Col, Row, Card, Avatar, Badge, Progress, Tag, message, Form, Radio, Alert } from 'antd';
 import type { FilterDropdownProps, ColumnType } from 'antd/es/table/interface';
 import {
     MailOutlined,
     MessageOutlined,
-    InfoCircleOutlined,
     SolutionOutlined,
     SearchOutlined,
     ExclamationCircleOutlined,
     SendOutlined,
     BankOutlined,
-    EditOutlined,
-    FilePdfOutlined,
     IdcardOutlined,
-    PhoneOutlined,
     LoginOutlined,
 } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
-import "./Students.styles.css";
-import { Course, Student } from '../../apiMAG/user';
-import { useNavigate } from 'react-router-dom';
-import Title from 'antd/lib/skeleton/Title';
-import { color } from 'echarts';
-import { title } from 'process';
+import './Students.styles.css';
 
-//$env:NODE_OPTIONS = "--openssl-legacy-provider"; yarn start
-// Custom Course List Component
+import { useNavigate, useParams } from 'react-router-dom';
+import { Course, Student, getStudents } from '../../apiMAG/students';
+import { useUser } from '../../Context/UserContext';
+import { useTranslation } from 'react-i18next';
+import { useResponsive } from '../../hooks/useResponsive';
+
 interface CourseListProps {
     title: string;
     courses: Course[];
@@ -41,27 +36,15 @@ const CourseList: React.FC<CourseListProps> = ({ title, courses, color }) => (
             padding: '0 0 12px 0',
             fontSize: '16px',
             fontWeight: 500,
-            paddingLeft:"9px"
+            paddingLeft: '9px',
         }}
     >
         <List
             dataSource={courses}
             renderItem={(course) => (
-                <List.Item
-                    style={{
-                        padding: '12px 16px',
-                        borderBottom: '1px solid #f0f0f0',
-                        transition: 'all 0.2s',
-                        //':hover': {
-                        //    background: '#f8fafc',
-                        //    transform: 'translateX(4px)'
-                        //}
-                    }}
-                >
+                <List.Item style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
                     <Typography.Text strong>{course.coursename}</Typography.Text>
-                    <div style={{ marginLeft: 'auto', color: color }}>
-                        {course.credits} credits
-                    </div>
+                    <div style={{ marginLeft: 'auto', color }}>{course.credits} credits</div>
                 </List.Item>
             )}
             bordered={false}
@@ -69,24 +52,88 @@ const CourseList: React.FC<CourseListProps> = ({ title, courses, color }) => (
     </Card>
 );
 
-
 export default function Students() {
+    const { t } = useTranslation();
     const { confirm } = Modal;
-    const { Text } = Typography;
+    const [students, setStudents] = useState<Student[]>([]);
+    const [loading, setLoading] = useState(false);
     const [isAdviseModalVisible, setAdviseModalVisible] = useState(false);
     const [adviseStudent, setAdviseStudent] = useState<Student | null>(null);
-    const navigate = useNavigate();
     const [searchText, setSearchText] = useState('');
-    const [searchedColumn, setSearchedColumn] = useState('');
+    const [searchedColumn, setSearchedColumn] = useState<keyof Student | ''>('');
     const searchInput = useRef<InputRef>(null);
+    const navigate = useNavigate();
+
+  
+    const { profile } = useUser();
+    const [isSendModalVisible, setSendModalVisible] = useState(false);
+    ////////////////////////////
+    const [emailTitle, setEmailTitle] = useState('');
+    const [emailMessage, setEmailMessage] = useState('');
+    const [sendOption, setSendOption] = useState<'current' | 'all'>('current');
+    // Fetch students on mount or when deptId changes
+    useEffect(() => {
+        setLoading(true);
+        getStudents(profile?.userid ?? 1)
+            .then((data) => setStudents(data))
+            .catch((err) => message.error(err.message))
+            .finally(() => setLoading(false));
+    }, [profile?.userid ]);
+    // Move getGroupColor above StudentsWithGroups
+    const getGroupColor = useCallback((index: number) => {
+        const colors = [
+            '#ff6b6b', '#4dabf7', '#40c057', '#f783ac', '#748ffc',
+            '#63e6be', '#ffa94d', '#9775fa', '#ff8787', '#3bc9db'
+        ];
+        return colors[index % colors.length];
+    }, []);
+
+    // Then define StudentsWithGroups
+    const StudentsWithGroups = useMemo(() => {
+        const groupedStudents = students.reduce((acc, student) => {
+            const currentKey = JSON.stringify({
+                current: student.currentlyRegisteredCourses
+                    .map(c => c.courseid)
+                    .sort((a, b) => a - b),
+                remaining: student.remainingCourses
+                    .map(c => c.courseid)
+                    .sort((a, b) => a - b)
+            });
+
+            if (!acc[currentKey]) {
+                acc[currentKey] = {
+                    students: [],
+                    color: getGroupColor(Object.keys(acc).length)
+                };
+            }
+            acc[currentKey].students.push(student);
+            return acc;
+        }, {} as Record<string, { students: Student[]; color: string }>);
+
+        return Object.values(groupedStudents).flatMap(group =>
+            group.students.map(student => ({
+                ...student,
+                groupColor: group.color
+            }))
+        );
+    }, [students, getGroupColor]); // Add getGroupColor to dependencies
+
+    // Rest of the code remains the same
+    const groupColorMap = useMemo(() => {
+        const map = new Map<number, string>();
+        StudentsWithGroups.forEach(student => {
+            map.set(student.userid, student.groupColor);
+        });
+        return map;
+    }, [StudentsWithGroups]);
     const getColumnSearchProps = (dataIndex: keyof Student): ColumnType<Student> => ({
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (//return custom JSX
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
             <div style={{ padding: 8 }}>
                 <Input
                     ref={searchInput}
-                    placeholder={`Search ${dataIndex}`}
+                    placeholder={`Search ${String(dataIndex)}`}
                     value={selectedKeys[0]}
-                    onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                    onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
                     onPressEnter={() => {
                         confirm();
                         setSearchText(selectedKeys[0] as string);
@@ -104,7 +151,7 @@ export default function Students() {
                         }}
                         icon={<SearchOutlined />}
                         size="small"
-                        style={{ width: 100 }}
+                        style={{ width: 90 }}
                     >
                         Search
                     </Button>
@@ -121,290 +168,25 @@ export default function Students() {
                 </Space>
             </div>
         ),
-        filterIcon: (filtered: boolean) => (
-            <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-        ),
-        onFilter: (value: any, record: Student) =>
-            record[dataIndex]
-                .toString()
+        filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+        onFilter: (value, record) =>
+            String(record[dataIndex])
                 .toLowerCase()
-                .includes(value.toString().toLowerCase()),
-        render: (text: string) =>// highlighting of matched text using react-highlight-words.
-
-
+                .includes(String(value).toLowerCase()),
+        render: (text: string) =>
             searchedColumn === dataIndex ? (
                 <Highlighter
                     highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
                     searchWords={[searchText]}
-                    autoEscape//escape special characters (like . * + ? ( ) etc.) in the search term so that they are treated as plain text, not regex symbols.
-                    textToHighlight={text.toString()}
+                    autoEscape
+                    textToHighlight={String(text)}
                 />
             ) : (
                 text
             ),
     });
 
-    const dataSource: Student[] = [
-        {
-            userid: 1,
-            fullname: 'Alice Johnson',
-            email: 'alice.johnson@example.com',
-            image: 'https://example.com/images/alice.jpg',
-            departmentid: 101,
-            departmentname: 'Computer Science',
-            campusname: 'North Campus',
-           
-            creditsFinished: 110,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'CS301', credits: 3 },
-                { coursename: 'CS302', credits: 3 },
-                { coursename: 'MATH210', credits: 4 }
-            ],
-            remainingCourses: [
-                { coursename: 'CS401', credits: 3 },
-                { coursename: 'CS402', credits: 3 },
-                { coursename: 'CS403', credits: 3 }
-            ],
-        },
-        {
-            userid: 2,
-            fullname: 'Brian Smith',
-            email: 'brian.smith@example.com',
-            image: 'https://example.com/images/brian.jpg',
-            departmentid: 102,
-            departmentname: 'Mathematics',
-            campusname: 'East Campus',
-           
-            creditsFinished: 95,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'MATH310', credits: 4 },
-                { coursename: 'STAT205', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'MATH410', credits: 4 },
-                { coursename: 'MATH420', credits: 4 },
-                { coursename: 'STAT305', credits: 3 }
-            ],
-        },
-        {
-            userid: 3,
-            fullname: 'Carmen Lee',
-            email: 'carmen.lee@example.com',
-            image: 'https://example.com/images/carmen.jpg',
-            departmentid: 103,
-            departmentname: 'Physics',
-            campusname: 'South Campus',
-           
-            creditsFinished: 102,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'PHYS301', credits: 4 },
-                { coursename: 'PHYS302', credits: 4 }
-            ],
-            remainingCourses: [
-                { coursename: 'PHYS401', credits: 4 },
-                { coursename: 'PHYS402', credits: 4 },
-                { coursename: 'MATH310', credits: 4 }
-            ],
-        },
-        {
-            userid: 4,
-            fullname: 'Daniel Patel',
-            email: 'daniel.patel@example.com',
-            image: 'https://example.com/images/daniel.jpg',
-            departmentid: 104,
-            departmentname: 'Chemistry',
-            campusname: 'West Campus',
-          
-            creditsFinished: 88,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'CHEM201', credits: 4 },
-                { coursename: 'CHEM202', credits: 4 },
-                { coursename: 'BIOL101', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'CHEM301', credits: 4 },
-                { coursename: 'CHEM302', credits: 4 },
-                { coursename: 'CHEM303', credits: 4 }
-            ],
-        },
-        {
-            userid: 5,
-            fullname: 'Eva Chen',
-            email: 'eva.chen@example.com',
-            image: 'https://example.com/images/eva.jpg',
-            departmentid: 105,
-            departmentname: 'Biology',
-            campusname: 'North Campus',
-          
-            creditsFinished: 100,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'BIOL201', credits: 3 },
-                { coursename: 'BIOL202', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'BIOL301', credits: 3 },
-                { coursename: 'BIOL302', credits: 3 },
-                { coursename: 'CHEM201', credits: 4 }
-            ],
-        },
-        {
-            userid: 6,
-            fullname: 'Frank Garcia',
-            email: 'frank.garcia@example.com',
-            image: 'https://example.com/images/frank.jpg',
-            departmentid: 106,
-            departmentname: 'Economics',
-            campusname: 'East Campus',
-          
-            creditsFinished: 92,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'ECON201', credits: 3 },
-                { coursename: 'ECON202', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'ECON301', credits: 3 },
-                { coursename: 'ECON302', credits: 3 },
-                { coursename: 'STAT205', credits: 3 }
-            ],
-        },
-        {
-            userid: 7,
-            fullname: 'Grace Müller',
-            email: 'grace.muller@example.com',
-            image: 'https://example.com/images/grace.jpg',
-            departmentid: 107,
-            departmentname: 'History',
-            campusname: 'South Campus',
-           
-            creditsFinished: 105,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'HIST301', credits: 3 },
-                { coursename: 'HIST302', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'HIST401', credits: 3 },
-                { coursename: 'PHIL101', credits: 3 },
-                { coursename: 'SOC201', credits: 3 }
-            ],
-        },
-        {
-            userid: 8,
-            fullname: 'Hiro Tanaka',
-            email: 'hiro.tanaka@example.com',
-            image: 'https://fbzizacbqkmfobmzospk.supabase.co/storage/v1/object/public/uploads/1747079167762_pfp.jpg.jpg',
-            departmentid: 108,
-            departmentname: 'Engineering',
-            campusname: 'West Campus',
-          
-            creditsFinished: 108,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'ENGR301', credits: 4 },
-                { coursename: 'ENGR302', credits: 4 },
-                { coursename: 'MATH310', credits: 4 }
-            ],
-            remainingCourses: [
-                { coursename: 'ENGR401', credits: 4 },
-                { coursename: 'ENGR402', credits: 4 },
-                { coursename: 'CS301', credits: 3 }
-            ],
-        },
-        {
-            userid: 9,
-            fullname: 'Isabel Santos',
-            email: 'isabel.santos@example.com',
-            image: 'https://example.com/images/isabel.jpg',
-            departmentid: 109,
-            departmentname: 'Literature',
-            campusname: 'North Campus',
-          
-            creditsFinished: 98,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'LIT201', credits: 3 },
-                { coursename: 'LIT202', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'LIT301', credits: 3 },
-                { coursename: 'LIT302', credits: 3 },
-                { coursename: 'ENG101', credits: 3 }
-            ],
-        },
-        {
-            userid: 10,
-            fullname: 'Jack O’Neill',
-            email: 'jack.oneill@example.com',
-            image: 'https://example.com/images/jack.jpg',
-            departmentid: 110,
-            departmentname: 'Philosophy',
-            campusname: 'East Campus',
-          
-            creditsFinished: 90,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'PHIL201', credits: 3 },
-                { coursename: 'PHIL202', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'PHIL301', credits: 3 },
-                { coursename: 'PHIL302', credits: 3 },
-                { coursename: 'HIST101', credits: 3 }
-            ],
-        },
-        {
-            userid: 11,
-            fullname: 'Karim Hussein',
-            email: 'karim.hussein@example.com',
-            image: 'https://example.com/images/karim.jpg',
-            departmentid: 111,
-            departmentname: 'Political Science',
-            campusname: 'South Campus',
-           
-            creditsFinished: 101,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'PS201', credits: 3 },
-                { coursename: 'PS202', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'PS301', credits: 3 },
-                { coursename: 'PS302', credits: 3 },
-                { coursename: 'ECON201', credits: 3 }
-            ],
-        },
-        {
-            userid: 12,
-            fullname: 'Luna Rossi',
-            email: 'luna.rossi@example.com',
-            image: 'https://example.com/images/luna.jpg',
-            departmentid: 112,
-            departmentname: 'Art',
-            campusname: 'West Campus',
-           
-            creditsFinished: 115,
-            totalCredits: 120,
-            currentlyRegisteredCourses: [
-                { coursename: 'ART301', credits: 3 },
-                { coursename: 'ART302', credits: 3 }
-            ],
-            remainingCourses: [
-                { coursename: 'ART401', credits: 3 },
-                { coursename: 'ART402', credits: 3 },
-                { coursename: 'HIST201', credits: 3 }
-            ],
-        }
-    ];
-
-
-
-    // --- Handler implementations ---
+    // Handlers
     const showAdviseModal = (student: Student) => {
         setAdviseStudent(student);
         setAdviseModalVisible(true);
@@ -413,17 +195,13 @@ export default function Students() {
         setAdviseModalVisible(false);
         setAdviseStudent(null);
     };
-    const handleSendPlan = (scope: 'single' | 'group') => {
-        console.log(`Send advising plan to ${scope}`, adviseStudent);
-        // implement actual send logic here...
+    const handleSendPlan = () => {
         setAdviseModalVisible(false);
+        setSendModalVisible(true);
     };
     const handleEmail = (email?: string) => {
         if (!email) return;
-        // Navigate browser to mailto link, opening default mail client
-        //window.location.href = `mailto:${encodeURIComponent(email)}`;
-        const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
-        window.open(gmailComposeUrl, '_blank');
+        window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`, '_blank');
     };
     const handleChat = (studentId?: number) => {
         if (!studentId) return;
@@ -431,116 +209,96 @@ export default function Students() {
             title: 'Start Chat?',
             icon: <ExclamationCircleOutlined />,
             content: `Do you want to open the chat for student #${studentId}?`,
-            okText: 'Yes',
-            cancelText: 'No',
-            onOk() {
-                navigate(`/Messager/${studentId}`);
-            },
-            onCancel() {
-                // no-op
-            },
+            okText: 'Yes', cancelText: 'No',
+            onOk: () => navigate(`/Messager/${studentId}`),
         });
     };
-   
-    const handleAdvise = (student: number) => {
-       
-    };
-    // -----------------------------------
 
     const columns: ColumnType<Student>[] = [
+        { title: t('student_id'), dataIndex: 'userid', key: 'userid', ...getColumnSearchProps('userid'), sorter: (a, b) => a.userid - b.userid },
+        { title: t('student_name'), dataIndex: 'fullname', key: 'fullname', ...getColumnSearchProps('fullname') },
         {
-            title: 'Student ID',
-            dataIndex: 'userid',
-            key: 'userid',
-            ...getColumnSearchProps('userid'),
-            sorter: (a: Student, b: Student) => a.userid - b.userid,
+            title: t("matching_progress"),
+            key: 'group',
+            render: (_, record) => {
+                const groupColor = groupColorMap.get(record.userid);
+                return (
+                    <Tag
+                        color={groupColor}
+                        style={{
+                            borderRadius: 12,
+                            border: `1px solid ${groupColor}33`,
+                            fontWeight: 500
+                        }}
+                    >
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8
+                        }}>
+                            <div style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                backgroundColor: groupColor
+                            }} />
+                         
+                        </div>
+                    </Tag>
+                );
+            }
         },
         {
-            title: 'Student Name',
-            dataIndex: 'fullname',
-            key: 'fullname',
-            ...getColumnSearchProps('fullname'),
+            title: t('campus'), dataIndex: 'campusname', key: 'campusname',
+            filters: Array.from(new Set(students.map(d => d.campusname))).map(c => ({ text: c, value: c })),
+            onFilter: (value, record) => record.campusname === value,
         },
         {
-            title: 'Campus',
-            dataIndex: 'campusname',
-            key: 'campusname',
-            filters: Array.from(new Set(dataSource.map(d => d.campusname))).map(c => ({ text: c, value: c })),
-            onFilter: (value: any, record: Student) => record.campusname === value,
+            title: t('department'), dataIndex: 'departmentname', key: 'departmentname',
+            filters: Array.from(new Set(students.map(d => d.departmentname))).map(dpt => ({ text: dpt, value: dpt })),
+            onFilter: (value, record) => record.departmentname === value,
         },
+        { title: t('finished_credits'), dataIndex: 'creditsFinished', key: 'creditsFinished', sorter: (a, b) => a.creditsFinished - b.creditsFinished },
         {
-            title: 'Department',
-            dataIndex: 'departmentname',
-            key: 'departmentname',
-            filters: Array.from(new Set(dataSource.map(d => d.departmentname))).map(dpt => ({ text: dpt, value: dpt })),
-            onFilter: (value: any, record: Student) => record.departmentname === value,
-        },
-       
-        {
-            title: 'Finished Credits',
-            dataIndex: 'creditsFinished',
-            key: 'creditsFinished',
-           
-            sorter: (a: Student, b: Student) => a.creditsFinished - b.creditsFinished,
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            align: 'center', // This centers both the header and cell content
+            title: t('actions'), key: 'actions', align: 'center',
             render: (_: any, record: Student) => (
                 <Row justify="space-between" align="middle">
                     <Col>
                         <Space size="small">
-                            <Button
-                                type="link"
-                                icon={<MailOutlined />}
-                                onClick={() => handleEmail(record.email)}
-                            >
-                                Email
+                            <Button type="link" icon={<MailOutlined />} onClick={() => handleEmail(record.email)}>
+                                {t('email')}
                             </Button>
-                            <Button
-                                type="link"
-                                icon={<MessageOutlined />}
-                                onClick={() => handleChat(record.userid)}
-                            >
-                                Chat
+                            <Button type="link" icon={<MessageOutlined />} onClick={() => handleChat(record.userid)}>
+                                {t('chat')}
                             </Button>
                         </Space>
                     </Col>
                     <Col>
-                        <Button
-                            type="primary"
-                            icon={<SolutionOutlined />}
-                            onClick={() => showAdviseModal(record)}
-                        >
-                            Advise
+                        <Button type="primary" icon={<SolutionOutlined />} onClick={() => showAdviseModal(record)}>
+                            {t('advise')}
                         </Button>
                     </Col>
                 </Row>
             ),
-        }
+        },
     ];
-
-
+    const { mobileOnly } = useResponsive();
     return (
         <>
             <Table
-                pagination={{
-                    pageSize: 8, // Number of entries per page
-                    showSizeChanger: false, // Hide page size changer
-                    // Other pagination options:
-                    // position: ['bottomCenter'],
-                    // hideOnSinglePage: true
-                }}
+                loading={loading}
+                pagination={{ pageSize: 8, showSizeChanger: false }}
                 className="custom-table"
                 rowKey="userid"
-                dataSource={dataSource}
-                columns={columns} />
+                dataSource={students}
+                columns={columns}
+            />
+
             <Modal
                 title={null}
                 open={isAdviseModalVisible}
                 onCancel={handleAdviseCancel}
-                width="90vw"
+                width={mobileOnly ? '95vw' : '90vw'}
                 style={{ maxWidth: 1200 }}
                 footer={null}
                 centered
@@ -551,56 +309,63 @@ export default function Students() {
                     maxHeight: '80vh',
                     overflowY: 'auto',
                     overflowX: 'hidden',
-                    boxShadow: '0 24px 80px rgba(0,0,0,0.15)',
+                    boxShadow: '0 24px 80px rgba(0,0,0,0.15)'
                 }}
             >
                 {adviseStudent && (
-                    <div className="modal-container" style={{ borderRadius: '12px',} }>
+                    <div className="modal-container" style={{ borderRadius: '12px' }}>
                         {/* Profile Header with Image */}
-                        <div className="profile-header" style={{
-                            background: 'linear-gradient(135deg, #038b94 0%, #025e63 100%)',
-                            padding: '32px 40px',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '24px',
-                            
-
-                        }}>
+                        <div
+                            className="profile-header"
+                            style={{
+                                background: 'linear-gradient(135deg, #038b94 0%, #025e63 100%)',
+                                padding: mobileOnly ? '24px 16px' : '32px 40px',
+                                color: 'white',
+                                display: 'flex',
+                                flexDirection: mobileOnly ? 'column' : 'row',
+                                alignItems: mobileOnly ? 'flex-start' : 'center',
+                                gap: mobileOnly ? '16px' : '24px'
+                            }}
+                        >
                             <Badge
                                 dot
                                 color="#4cd964"
-                                offset={[-20, 80]}
+                                offset={mobileOnly ? [-10, 40] : [-20, 80]}
                                 status="processing"
                             >
                                 <Avatar
                                     src={adviseStudent.image || '/default-avatar.png'}
-                                    size={120}
+                                    size={mobileOnly ? 80 : 120}
                                     style={{
                                         border: '3px solid rgba(255,255,255,0.2)',
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
                                     }}
                                 />
                             </Badge>
-
                             <div>
                                 <Typography.Title
-                                    level={2}
+                                    level={mobileOnly ? 3 : 2}
                                     style={{
                                         color: 'white',
                                         margin: 0,
                                         fontWeight: 600,
-                                        letterSpacing: '-0.5px'
+                                        letterSpacing: '-0.5px',
+                                        fontSize: mobileOnly ? '20px' : '24px'
                                     }}
                                 >
                                     {adviseStudent.fullname}
                                 </Typography.Title>
-                                <Space size={16} style={{ marginTop: 8 }}>
+                                <Space
+                                    size={mobileOnly ? 8 : 16}
+                                    style={{ marginTop: 8 }}
+                                    wrap={mobileOnly}
+                                >
                                     <Tag style={{
                                         background: 'rgba(255,255,255,0.15)',
                                         color: 'white',
                                         borderRadius: '20px',
-                                        padding: '4px 12px'
+                                        padding: '4px 12px',
+                                        margin: mobileOnly ? '4px 0' : 0
                                     }}>
                                         <IdcardOutlined /> id: {adviseStudent.userid}
                                     </Tag>
@@ -608,7 +373,8 @@ export default function Students() {
                                         background: 'rgba(255,255,255,0.15)',
                                         color: 'white',
                                         borderRadius: '20px',
-                                        padding: '4px 12px'
+                                        padding: '4px 12px',
+                                        margin: mobileOnly ? '4px 0' : 0
                                     }}>
                                         <BankOutlined /> {adviseStudent.campusname}
                                     </Tag>
@@ -617,119 +383,311 @@ export default function Students() {
                         </div>
 
                         {/* Main Content */}
-                        <div style={{ padding: '32px 40px', background: '#f8fafc', }}>
+                        <div style={{
+                            padding: mobileOnly ? '16px 20px' : '32px 40px',
+                            background: '#f8fafc'
+                        }}>
                             {/* Academic Overview */}
                             <Card
-                                title="Academic Overview"
+                                title={t('academicOverview')}
                                 bordered={false}
                                 headStyle={{
                                     borderBottom: '2px solid #038b94',
-                                    padding: '0 0 16px 0',
-                                    fontSize: '20px',
+                                    padding: '0 0 8px 0',
+                                    fontSize: mobileOnly ? '16px' : '20px',
                                     fontWeight: 500
                                 }}
-                                style={{ marginBottom: 24 }}
+                                style={{ marginBottom: 12 }}
                             >
-                                <Descriptions column={2} size="middle">
-                                    <Descriptions.Item label="Department" contentStyle={{ fontWeight: 500 }}>
-                                        {adviseStudent.departmentname}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Current GPA" contentStyle={{ color: '#038b94', fontWeight: 600 }}>
-                                        3.97
-                                    </Descriptions.Item>
-                                    <Descriptions.Item>
-                                        <div style={{ width: '80%' }}>
-                                            <Text style={{ display: 'block', marginBottom: 8 }}>
-                                                Credits Progress:
-                                            </Text>
+                                <Row gutter={[16, 24]} style={{ marginBottom: 24 }}>
+                                    {/* Department & GPA */}
+                                    <Col span={mobileOnly ? 24 : 12}>
+                                        <div>
+                                            <Typography.Text strong>{t('department')}:</Typography.Text>
+                                            <Typography.Text style={{
+                                                display: 'block',
+                                                fontWeight: 500,
+                                                fontSize: mobileOnly ? '14px' : 'inherit'
+                                            }}>
+                                                {adviseStudent.departmentname}
+                                            </Typography.Text>
+                                        </div>
+                                    </Col>
+                                    <Col span={mobileOnly ? 24 : 12}>
+                                        <div>
+                                            <Typography.Text strong>{t('currentGPA')}:</Typography.Text>
+                                            <Typography.Text style={{
+                                                display: 'block',
+                                                color: '#038b94',
+                                                fontWeight: 600,
+                                                fontSize: mobileOnly ? '14px' : 'inherit'
+                                            }}>
+                                                3.97
+                                            </Typography.Text>
+                                        </div>
+                                    </Col>
+
+                                    {/* Progress & Contact */}
+                                    <Col span={mobileOnly ? 24 : 12}>
+                                        <div style={{ width: mobileOnly ? '100%' : '80%' }}>
+                                            <Typography.Text
+                                                strong
+                                                style={{
+                                                    display: 'block',
+                                                    marginBottom: 8,
+                                                    fontSize: mobileOnly ? '14px' : 'inherit'
+                                                }}
+                                            >
+                                                {t('creditsProgress')}:
+                                            </Typography.Text>
                                             <Progress
                                                 percent={Number(
-                                                    (adviseStudent.creditsFinished / adviseStudent.totalCredits * 100).toFixed(0)
-                                                )}
-                                            
+                                                    (adviseStudent.creditsFinished / Number(adviseStudent.totalCredits) * 100
+                                                    ).toFixed(0))}
                                                 strokeColor="#038b94"
                                                 trailColor="#e6f4ff"
                                                 strokeWidth={12}
-                                                format={percent => `${adviseStudent.creditsFinished}/${adviseStudent.totalCredits}`}
+                                                format={() => `${adviseStudent.creditsFinished}/${adviseStudent.totalCredits}`}
                                             />
                                         </div>
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Contact">
-                                        <Space direction="vertical">
-                                            <div>
-                                                <MailOutlined /> {adviseStudent.email}
-                                            </div>
-                                         
-                                        </Space>
-                                    </Descriptions.Item>
-                                </Descriptions>
+                                    </Col>
+                                    <Col span={mobileOnly ? 24 : 12}>
+                                        <Typography.Text strong>{t('contact')}:</Typography.Text>
+                                        <div style={{ marginTop: 8, fontSize: mobileOnly ? '14px' : 'inherit' }}>
+                                            <MailOutlined /> {adviseStudent.email}
+                                        </div>
+                                    </Col>
+
+                                    {/* Buttons */}
+                                    <Col span={24}>
+                                        <Row
+                                            justify={mobileOnly ? 'start' : 'end'}
+                                            gutter={[16, 16]}
+                                            style={{ marginTop: 24 }}
+                                        >
+                                            <Col>
+                                                <Button
+                                                    icon={<SendOutlined />}
+                                                    type="primary"
+                                                    size={mobileOnly ? 'middle' : 'large'}
+                                                    style={{
+                                                        background: '#038b94',
+                                                        padding: mobileOnly ? '6px 16px' : '8px 24px',
+                                                        height: 'auto',
+                                                        fontSize: mobileOnly ? '14px' : 'inherit'
+                                                    }}
+                                                    onClick={() => handleSendPlan()}
+                                                >
+                                                    {t('sendAdvisingPlan')}
+                                                </Button>
+                                            </Col>
+                                            <Col>
+                                                <Button
+                                                    icon={<LoginOutlined />}
+                                                    type="primary"
+                                                    size={mobileOnly ? 'middle' : 'large'}
+                                                    style={{
+                                                        background: '#038b94',
+                                                        padding: mobileOnly ? '6px 16px' : '8px 24px',
+                                                        height: 'auto',
+                                                        fontSize: mobileOnly ? '14px' : 'inherit'
+                                                    }}
+                                              
+                                                >
+                                                    {t('accessProfile')}
+                                                </Button>
+                                            </Col>
+                                        </Row>
+                                    </Col>
+                                </Row>
                             </Card>
 
-                            {/* Course Management */}
-                            <Row gutter={32}>
-                                <Col span={12}>
+                            <Row gutter={mobileOnly ? 16 : 32}>
+                                <Col span={mobileOnly ? 24 : 12}>
                                     <CourseList
-                                        title="Current Courses"
+                                        title={t('currentCourses')}
                                         courses={adviseStudent.currentlyRegisteredCourses}
                                         color="#038b94"
+
                                     />
                                 </Col>
-                                <Col span={12}>
+                                <Col span={mobileOnly ? 24 : 12}>
                                     <CourseList
-                                        title="Remaining Requirements"
+                                        title={t('remainingRequirements')}
                                         courses={adviseStudent.remainingCourses}
                                         color="#ff6b6b"
+
                                     />
                                 </Col>
                             </Row>
-
-                            {/* Action Bar */}
-                            <div style={{
-                                marginTop: 40,
-                                paddingTop: 24,
-                                borderTop: '2px solid #eee',
-                                display: 'flex',
-                                justifyContent: 'left',
-                                alignItems: 'center'
-                            }}>
-                               
-
-                                <Space>
-                                    <Button
-                                        icon={<SendOutlined />}
-                                        type="primary"
-                                        style={{
-                                            background: '#038b94',
-                                            padding: '8px 24px',
-                                            height: 'auto',
-                                            marginRight:"5px"
-                                        }}
-                                        onClick={() => handleSendPlan('single')}
-                                    >
-                                        Send Advising Plan
-                                    </Button>
-                                </Space>
-                                <Space>
-                                    <Button
-                                        icon={<LoginOutlined />}
-                                        type="primary"
-                                        style={{
-                                            background: '#038b94',
-                                            padding: '8px 24px',
-                                            height: 'auto'
-                                        }}
-                                        onClick={() => handleSendPlan('single')}
-                                    >
-                                        Access Profile
-                                    </Button>
-                                </Space>
-                            </div>
                         </div>
                     </div>
                 )}
             </Modal>
+            <Modal
+                title={t("composeAdvisoryMessage")}
+                open={isSendModalVisible}
+                onCancel={() => {
+                    setSendModalVisible(false);
+                    setAdviseModalVisible(true); // Reopen parent modal
+                }}
+                footer={null}
+                centered
+           
+                className="luxury-modal"
+                style={{ minWidth: "45%" }}
+                bodyStyle={{
+                    padding: 0,
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    minWidth: "100%",
+               
+                }}
+            >
+                <div style={{
+                    background: 'linear-gradient(135deg, #f8fafc 0%, #e6f4ff 100%)',
+                    padding: 24,
+                    minWidth: "100%"
+                }}>
+                    <Form layout="vertical">
+                        {/* Email Header Section */}
+                        <div style={{
+                            background: 'white',
+                            minWidth: "100%",
+                            borderRadius: 8,
+                            padding: 24,
+                            marginBottom: 24,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                        }}>
+                            <Form.Item
+                                label={<span style={{ fontWeight: 600, color: '#025e63' }}>{t("emailTitle")}</span>}
+                                rules={[{ required: true, message: 'Please enter a title' }]}
+                            >
+                                <Input
+                                    value={emailTitle}
+                                    onChange={(e) => setEmailTitle(e.target.value)}
+                                    placeholder={t("enterEmailSubject")}
+                                    prefix={<MailOutlined style={{ color: '#038b94' }} />}
+                                    size="large"
+                                />
+                            </Form.Item>
 
+                            <Form.Item
+                                label={<span style={{ fontWeight: 600, color: '#025e63' }}>{t("recipients")}</span>}
+                            >
+                                
+                                    <Radio.Group
+                                        value={sendOption}
+                                        onChange={(e) => setSendOption(e.target.value)}
+                                        buttonStyle="solid"
+                                        style={{ width: "100%", gap: 8 }}
+                                    >
+                                        <Row justify="center">
+                                        <Col lg={12} style={{ maxWidth: "70%" } }>
+                                                <Radio.Button
+                                                    value="current"
+                                                style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: "5px" }}
+                                                >
 
-            
-        </>);
+                                                {t("currentStudent")}
+                                                </Radio.Button>
+                                            </Col>
+                                        <Col lg={12} style={{ maxWidth: "70%" }}>
+                                                <Radio.Button
+                                                    value="all"
+                                                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                                                >
+
+                                                {t("entireGroup")}  (
+                                                {StudentsWithGroups.filter(s =>
+                                                    s.groupColor === groupColorMap.get(adviseStudent?.userid || 0)
+                                                ).length}{" "}  {t("students")})
+                    )
+                                                </Radio.Button>
+                                        </Col>
+                                        <Alert
+                                            message={t("recepients")}
+                                            description={t("sendAllDescription")}
+                                            type="info"
+                                            showIcon={false} 
+                                            banner
+                                            style={{ width: "100%", borderRadius:"12px",marginTop:"10px"} }
+                                        />
+                                        </Row>
+                                    </Radio.Group>
+                            
+                            </Form.Item>
+                        </div>
+
+                        {/* Message Composition Area */}
+                        <Form.Item
+                            label={<span style={{ fontWeight: 600, color: '#025e63' }}>{t("yourMessage")}</span>}
+                            rules={[{ required: true, message: t("pleaseEnterMessage") }]}
+                        >
+                            <Input.TextArea
+                                value={emailMessage}
+                                onChange={(e) => setEmailMessage(e.target.value)}
+                                placeholder={t("writeMessageHere")}
+                                autoSize={{ minRows: 6, maxRows: 10 }}
+                                style={{
+                                    borderRadius: 8,
+                                    border: '1px solid #e6f4ff',
+                                    padding: 16,
+                                    fontSize: 16
+                                }}
+                            />
+                        </Form.Item>
+
+                        {/* Action Bar */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: 16,
+                            marginTop: 32,
+                            borderTop: '1px solid #e6f4ff',
+                            paddingTop: 24
+                        }}>
+                            <Button
+                                size="large"
+                                onClick={() => setSendModalVisible(false)}
+                                style={{ padding: '8px 24px' }}
+                            >
+                                {t("cancel")}
+                            </Button>
+                            <Button
+                                type="primary"
+                                size="large"
+                                icon={<SendOutlined />}
+                                style={{
+                                    background: '#038b94',
+                                    padding: '8px 32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8
+                                }}
+                                onClick={() => {
+                                    if (!adviseStudent) return;
+
+                                    // Get emails based on selection
+                                    const emails = sendOption === 'current'
+                                        ? [adviseStudent.email]
+                                        : StudentsWithGroups
+                                            .filter(s => s.groupColor === groupColorMap.get(adviseStudent.userid))
+                                            .map(s => s.email);
+
+                                    // Create mailto link
+                                    const subject = encodeURIComponent(emailTitle);
+                                    const body = encodeURIComponent(emailMessage);
+                                    const mailtoLink = `mailto:${emails.join(',')}?subject=${subject}&body=${body}`;
+                                    window.open(mailtoLink, '_blank');
+                                }}
+                            >
+                                {t("sendEmail")}
+                            </Button>
+                        </div>
+                    </Form>
+                </div>
+            </Modal>
+        </>
+    );
 }
