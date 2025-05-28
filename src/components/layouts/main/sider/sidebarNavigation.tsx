@@ -47,11 +47,7 @@ export const sidebarNavigation: SidebarNavigationItem[] = [
                 url: '/auth/logout',
             },
        
-            {
-                title: 'sider.forget_pass',
-                key: 'forgotPass',
-                url: '/auth/forgot-password',
-            },
+          
          
         ],
     },
